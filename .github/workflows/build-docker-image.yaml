@@ -1,3 +1,5 @@
+name: Build and Push Docker Image
+
 on:
   push:
     branches:
@@ -8,21 +10,18 @@ on:
 
 jobs:
   build-and-push:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract short Git SHA
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Extract namespace from branch
-        id: ns
+      - name: Extract Git SHA and Namespace
+        id: meta
         run: |
-          ref="${GITHUB_REF##*/}"
-          echo "namespace=$ref" >> $GITHUB_OUTPUT
+          echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
+          echo "namespace=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -34,23 +33,22 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Build and Push Docker Image to ECR
         run: |
           ECR_REGISTRY="914132589502.dkr.ecr.us-east-1.amazonaws.com"
           ECR_REPOSITORY="web-client"
-          SHA=${{ steps.vars.outputs.sha_short }}
-          NS=${{ steps.ns.outputs.namespace }}
-
+          SHA="${{ steps.meta.outputs.sha_short }}"
+          NS="${{ steps.meta.outputs.namespace }}"
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
 
           echo "🛠️ Building image: $IMAGE_URI:$NS-$SHA"
           docker build -t $IMAGE_URI:$NS-$SHA .
 
-          echo "🏷️ Tagging as latest for $NS"
+          echo "🏷️ Tagging image as $NS"
           docker tag $IMAGE_URI:$NS-$SHA $IMAGE_URI:$NS
 
-          echo "📤 Pushing $NS-$SHA"
+          echo "📤 Pushing image: $NS-$SHA"
           docker push $IMAGE_URI:$NS-$SHA
 
-          echo "📤 Pushing $NS"
+          echo "📤 Pushing image: $NS"
           docker push $IMAGE_URI:$NS
