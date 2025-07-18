@@ -9,6 +9,9 @@ on:
       ref:
         required: true
         type: string
+      namespace:
+        required: false
+        type: string
     outputs:
       namespace:
         description: "Determined namespace"
@@ -24,8 +27,8 @@ jobs:
         run: |
           echo "Evaluating namespace for event: ${{ inputs.event_name }} and ref: ${{ inputs.ref }}"
 
-          if [[ "${{ inputs.event_name }}" == "workflow_dispatch" ]]; then
-            echo "namespace=dev" >> $GITHUB_OUTPUT
+          if [[ "${{ inputs.event_name }}" == "workflow_dispatch" && -n "${{ inputs.namespace }}" ]]; then
+            echo "namespace=${{ inputs.namespace }}" >> $GITHUB_OUTPUT
           elif [[ "${{ inputs.event_name }}" == "pull_request" ]]; then
             echo "namespace=sit" >> $GITHUB_OUTPUT
           elif [[ "${{ inputs.event_name }}" == "push" && "${{ inputs.ref }}" == "refs/heads/main" ]]; then
