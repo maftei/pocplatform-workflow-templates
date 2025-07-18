@@ -1,42 +1,36 @@
-name: Update GitOps Tag
+name: Set Namespace
 
 on:
   workflow_call:
     inputs:
-      namespace:
+      event_name:
         required: true
         type: string
-    secrets:
-      GITOPS_REPO_TOKEN:
+      ref:
         required: true
+        type: string
+    outputs:
+      namespace:
+        description: "Determined namespace"
+        value: ${{ jobs.set-namespace.outputs.namespace }}
 
 jobs:
-  update-tag:
+  set-namespace:
     runs-on: ubuntu-latest
+    outputs:
+      namespace: ${{ steps.set_ns.outputs.namespace }}
     steps:
-      - name: Extract short Git SHA
-        id: vars
+      - id: set_ns
         run: |
-          echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
+          echo "Evaluating namespace for event: ${{ inputs.event_name }} and ref: ${{ inputs.ref }}"
 
-      - name: Clone GitOps repo
-        uses: actions/checkout@v4
-        with:
-          repository: maftei/git-deploy
-          token: ${{ secrets.GITOPS_REPO_TOKEN }}
-          path: gitops
-
-      - name: Update image tag in values.yaml
-        run: |
-          cd gitops/${{ inputs.namespace }}/web-client
-          echo "📝 Updating image tag to: ${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"
-          yq e -i '.image.tag = "${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"' values.yaml
-
-      - name: Commit and push changes
-        run: |
-          cd gitops
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "chore(web-client): update image tag to ${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"
-          git push
+          if [[ "${{ inputs.event_name }}" == "workflow_dispatch" ]]; then
+            echo "namespace=dev" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.event_name }}" == "pull_request" ]]; then
+            echo "namespace=sit" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.event_name }}" == "push" && "${{ inputs.ref }}" == "refs/heads/main" ]]; then
+            echo "namespace=dev" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.event_name }}" == "schedule" ]]; then
+            echo "namespace=nightly" >> $GITHUB_OUTPUT
+          else
+            echo "namespace=unknown" >> $GITHUB_OUTPUT
