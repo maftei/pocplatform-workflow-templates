@@ -1,0 +1,42 @@
+name: Update GitOps Tag
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        required: true
+        type: string
+    secrets:
+      GITOPS_REPO_TOKEN:
+        required: true
+
+jobs:
+  update-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract short Git SHA
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Clone GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: maftei/git-deploy
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          path: gitops
+
+      - name: Update image tag in values.yaml
+        run: |
+          cd gitops/${{ inputs.namespace }}/web-client
+          echo "📝 Updating image tag to: ${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"
+          yq e -i '.image.tag = "${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"' values.yaml
+
+      - name: Commit and push changes
+        run: |
+          cd gitops
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "chore(web-client): update image tag to ${{ inputs.namespace }}-${{ steps.vars.outputs.sha_short }}"
+          git push
