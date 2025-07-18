@@ -24,17 +24,22 @@ jobs:
       namespace: ${{ steps.set_ns.outputs.namespace }}
     steps:
       - id: set_ns
+        shell: bash
         run: |
           echo "Evaluating namespace for event: ${{ inputs.event_name }} and ref: ${{ inputs.ref }}"
 
           if [[ "${{ inputs.event_name }}" == "workflow_dispatch" && -n "${{ inputs.namespace }}" ]]; then
             echo "namespace=${{ inputs.namespace }}" >> $GITHUB_OUTPUT
+
           elif [[ "${{ inputs.event_name }}" == "pull_request" ]]; then
             echo "namespace=sit" >> $GITHUB_OUTPUT
-          elif [[ "${{ inputs.event_name }}" == "push" && "${{ inputs.ref }}" == "refs/heads/main" ]]; then
+
+          elif [[ "${{ inputs.event_name }}" == "push" && "${{ inputs.ref }}" == "refs/heads/dev" ]]; then
             echo "namespace=dev" >> $GITHUB_OUTPUT
+
           elif [[ "${{ inputs.event_name }}" == "schedule" ]]; then
             echo "namespace=nightly" >> $GITHUB_OUTPUT
+
           else
             echo "namespace=unknown" >> $GITHUB_OUTPUT
           fi
