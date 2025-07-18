@@ -23,11 +23,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract Git SHA and Namespace
+      - name: Extract short Git SHA
         id: meta
-        run: |
-          echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
-          echo "namespace=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+        run: echo "sha_short=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -44,7 +42,7 @@ jobs:
           ECR_REGISTRY="914132589502.dkr.ecr.us-east-1.amazonaws.com"
           ECR_REPOSITORY="web-client"
           SHA="${{ steps.meta.outputs.sha_short }}"
-          NS="${{ steps.meta.outputs.namespace }}"
+          NS="${{ inputs.namespace }}"
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
 
           echo "🛠️ Building image: $IMAGE_URI:$NS-$SHA"
