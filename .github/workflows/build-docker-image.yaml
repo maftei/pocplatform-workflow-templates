@@ -1,13 +1,25 @@
-name: Build and Push Docker Image to ECR
+name: Reusable - Build Docker Image and Push to ECR
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      namespace:
+        required: true
+        type: string
+      build_args:
+        required: false
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_REGION:
+        required: true
 
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image
+  build:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
 
     steps:
@@ -28,23 +40,19 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push Docker image (HARD CODED)
+      - name: Build and Push Docker Image to ECR
         run: |
-          # ✅ Hardcoded values for testing
           ECR_REGISTRY="914132589502.dkr.ecr.us-east-1.amazonaws.com"
           ECR_REPOSITORY="web-client"
           GIT_TAG="${{ steps.vars.outputs.sha_short }}"
-
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
 
-          echo "🛠️ Building image: $IMAGE_URI:$GIT_TAG"
+          echo "🛠️ Building Docker image: $IMAGE_URI:$GIT_TAG"
           docker build -t $IMAGE_URI:$GIT_TAG .
 
           echo "🏷️ Tagging image as latest"
           docker tag $IMAGE_URI:$GIT_TAG $IMAGE_URI:latest
 
-          echo "📤 Pushing $GIT_TAG"
+          echo "📤 Pushing both tags to ECR"
           docker push $IMAGE_URI:$GIT_TAG
-
-          echo "📤 Pushing latest"
           docker push $IMAGE_URI:latest
