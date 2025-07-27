@@ -48,11 +48,5 @@ jobs:
           echo "🛠️ Building image: $IMAGE_URI:$NS-$SHA"
           docker build -t $IMAGE_URI:$NS-$SHA .
 
-          echo "🏷️ Tagging image as $NS"
-          docker tag $IMAGE_URI:$NS-$SHA $IMAGE_URI:$NS
-
           echo "📤 Pushing image: $NS-$SHA"
           docker push $IMAGE_URI:$NS-$SHA
-
-          echo "📤 Pushing image: $NS"
-          docker push $IMAGE_URI:$NS
